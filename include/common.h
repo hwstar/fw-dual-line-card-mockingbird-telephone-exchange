@@ -6,13 +6,13 @@
 
 extern LOGGING::Logging Log;
 
-#define LOG_LEVEL LOG_LEVEL_DEBUG // Default logging level
+#define LOG_LEVEL_DEBUG 4
+#define LOG_LEVEL_INFO 3
+#define LOG_LEVEL_NOTICE 2
+#define LOG_LEVEL_WARN 1
 
-#define LOG_ERROR(tag, format, args...) Log.log(tag, LOGGING::LOGGING_ERROR, millis(), format, args);
-#define LOG_WARN(tag, format, args...) Log.log(tag, LOGGING::LOGGING_WARN, millis(), format, args);
-#define LOG_NOTICE(tag, format, args...) Log.log(tag, LOGGING::LOGGING_NOTICE, millis(), format, args);
-#define LOG_INFO(tag, format, args...) Log.log(tag, LOGGING::LOGGING_INFO, millis(), format, args);
-#define LOG_DEBUG(tag, format, args...) Log.log(tag, LOGGING::LOGGING_DEBUG, millis(), format, args);
+//*************** USER MODIFYABLE AREA BEGIN **************************
+
 
 /*
 * GPIO pin definitions
@@ -45,5 +45,37 @@ extern LOGGING::Logging Log;
 #define CFG0N PA15
 #define CFG1N PB14
 #define CFG2N PB15
+
+
+/*
+* Default logging level
+*/
+
+#define LOG_LEVEL LOG_LEVEL_INFO 
+
+//*************** USER MODIFYABLE AREA END **************************
+
+
+#define LOG_ERROR(tag, format, args...) Log.log(tag, LOGGING::LOGGING_ERROR, millis(), format, args);
+#if LOG_LEVEL_WARN <= LOG_LEVEL
+#define LOG_WARN(tag, format, args...) Log.log(tag, LOGGING::LOGGING_WARN, millis(), format, args);
+#else
+#define LOG_WARN(tag, format, args...)
+#endif
+#if LOG_LEVEL_NOTICE <= LOG_LEVEL
+#define LOG_NOTICE(tag, format, args...) Log.log(tag, LOGGING::LOGGING_NOTICE, millis(), format, args);
+#else
+#define LOG_NOTICE(tag, format, args...)
+#endif
+#if LOG_LEVEL_INFO <= LOG_LEVEL
+#define LOG_INFO(tag, format, args...) Log.log(tag, LOGGING::LOGGING_INFO, millis(), format, args);
+#else
+#define LOG_INFO(tag, format, args...)
+#endif
+#if LOG_LEVEL_DEBUG <= LOG_LEVEL
+#define LOG_DEBUG(tag, format, args...) Log.log(tag, LOGGING::LOGGING_DEBUG, millis(), format, args);
+#else
+#define LOG_DEBUG(tag, format, args...)
+#endif
 
 
