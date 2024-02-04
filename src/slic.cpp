@@ -95,15 +95,17 @@ bool SLIC::_on_hook_transition(uint8_t line)
 */
 
 bool SLIC::_request_service(uint8_t line, uint8_t event){
-  bool res = true;
-  LOG_DEBUG(TAG, "Sending event: %d for line %d to main CPU", event, line + 1);
-  if(!this->_test_mode) {
-
-
-
-  // TODO add ring buffer
-  // TODO Add assert ATTEN
+  bool res = !this->_event_buffer_full();
+  if(res) {
+    uint8_t *ev = this->_event_buffer.ring_buffer[this->_event_buffer.head];
+    ev[0] = event;
+    ev[1] = line;
+    this->_event_buffer.head = this->_event_buffer_next(this->_event_buffer.head);
   }
+  else {
+    this->_event_buffer.overflow_error = true;
+  }
+
   return res;
 }
 
@@ -420,6 +422,19 @@ void SLIC::service() {
 
 
 void SLIC::loop() {
+  if(this->_event_buffer.overflow_error) {
+    LOG_ERROR(TAG, "Event buffer overflow");
+    this->_event_buffer.overflow_error = false;
+  }
+
+  if(!this->_event_buffer_empty()) {
+    uint8_t *ev = this->_event_buffer.ring_buffer[this->_event_buffer.tail];
+    LOG_DEBUG(TAG, "Sending event: %d for line %d to main CPU", ev[0], ev[1] + 1);
+    // TODO Send event to main cpu
+
+    this->_event_buffer.tail = this->_event_buffer_next(this->_event_buffer.tail);
+  
+  }
   
 
 }

@@ -5,6 +5,8 @@ namespace SLIC {
 
 const uint8_t LINE_COUNT = 2;
 const uint32_t TICK_TIME = 25;
+const uint8_t EVENT_BUFFER_DEPTH = 4;
+const uint8_t EVENT_BUFFER_SIZE = 2;
 
 // Software timers
 enum {TIMER_ON_HOOK=0, MAX_TIMERS};
@@ -22,6 +24,14 @@ enum {CMD_POWER, CMD_OR_CONNECTED, CMD_POLARITY, CMD_RING};
 enum {TM_NONE=0, TM_STANDALONE};
 
 
+typedef struct eventBuffer {
+    uint8_t head;
+    uint8_t tail;
+    bool overflow_error;
+    uint8_t ring_buffer [EVENT_BUFFER_DEPTH][EVENT_BUFFER_SIZE];
+} eventBuffer;
+
+
 class SLIC {
 public:
     void setup();
@@ -34,6 +44,10 @@ protected:
     void _led_handler();
     void _ringing_handler();
     void _main_handler();
+
+    bool _event_buffer_full() { return (((this->_event_buffer.head + 1) & (EVENT_BUFFER_DEPTH - 1)) == this->_event_buffer.tail); }
+    bool _event_buffer_empty() { return (this->_event_buffer.tail == this->_event_buffer.head); }
+    uint8_t _event_buffer_next(uint8_t buffer) { return (buffer + 1) & (EVENT_BUFFER_DEPTH - 1); }
 
     void _set_line_state_led(uint8_t line, uint8_t mode);
     bool _get_off_hook_state(uint8_t line);
@@ -54,6 +68,7 @@ protected:
     uint8_t _mh_state[LINE_COUNT];
     uint8_t _mh_state_return[LINE_COUNT];
     uint8_t _test_mode;
+    eventBuffer _event_buffer;
     uint16_t _mh_timer[LINE_COUNT][MAX_TIMERS];
     uint16_t _ring_timer[LINE_COUNT];
 
