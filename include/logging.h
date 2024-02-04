@@ -41,7 +41,7 @@ class Logging {
     protected:
     ringBuffer _ring_buffer;
 
-    bool _buffer_full() { return ((this->_ring_buffer.head + 1) & (MAX_LOG_BUFFER_DEPTH - 1) == this->_ring_buffer.tail); }
+    bool _buffer_full() { return (((this->_ring_buffer.head + 1) & (MAX_LOG_BUFFER_DEPTH - 1)) == this->_ring_buffer.tail); }
     bool _buffer_empty() { return (this->_ring_buffer.tail == this->_ring_buffer.head); }
     uint8_t _buffer_next(uint8_t buffer) { return (buffer + 1) & (MAX_LOG_BUFFER_DEPTH - 1); }
     void _xmit_logitem(const char *tag, uint8_t level, uint32_t timestamp, const char *str);

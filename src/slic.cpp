@@ -55,7 +55,7 @@ void SLIC::_set_line_state_led(uint8_t line, uint8_t mode) {
 
 bool SLIC::_get_off_hook_state(uint8_t line)
 {
-  return (this->_hook_state_current & (1 << line) > 0);
+  return ((this->_hook_state_current & (1 << line)) > 0);
 }
 
 
@@ -96,8 +96,8 @@ bool SLIC::_on_hook_transition(uint8_t line)
 
 bool SLIC::_request_service(uint8_t line, uint8_t event){
   bool res = true;
-  LOG_DEBUG(TAG, "Sending event: %d for line %d to main CPU", event, line)
-  if(!test_mode) {
+  LOG_DEBUG(TAG, "Sending event: %d for line %d to main CPU", event, line + 1);
+  if(!this->_test_mode) {
 
 
 
@@ -147,7 +147,7 @@ void SLIC::_ringing_handler() {
       case RINGING_START_R1: // 2 Sec on, 4 Sec off Cadence
         digitalWrite(pin_map_rm[i], 1); // Set high voltage ring mode
         this->_set_line_state_led( i, LED_RING);
-        this->_ring_timer[i] = 2000/RING_TICK_TIME;
+        this->_ring_timer[i] = 2000/TICK_TIME; // 2 seconds on
         this->_ring_state[i] = RINGING_ACTIVE_R1;
         break;
 
@@ -164,7 +164,7 @@ void SLIC::_ringing_handler() {
         // Test to see if ring timer expired
         if(!this->_ring_timer[i]){
           this->_set_line_state_led( i, LED_RING);
-          this->_ring_timer[i] = 2000/RING_TICK_TIME;
+          this->_ring_timer[i] = 2000/TICK_TIME; // 2 seconds on
           this->_ring_state[i] = RINGING_ACTIVE_R1;
         }
         else {
@@ -187,7 +187,7 @@ void SLIC::_ringing_handler() {
         if(!this->_ring_timer[i]) {
           digitalWrite(pin_map_batfr[i], 0);
           this->_set_line_state_led( i, LED_ONHOOK);
-          this->_ring_timer[i] = 4000/RING_TICK_TIME;
+          this->_ring_timer[i] = 4000/TICK_TIME; // 4 seconds off
           this->_ring_state[i] = RINGING_PAUSE_R1;
         }
         else {
@@ -249,25 +249,25 @@ void SLIC::_main_handler() {
     case MHS_REQUEST_OR_WAIT:
      // Test for on-hook
       if(this->_on_hook_transition(i)) {
-        this->_mh_state[i] = MHS_ON_HOOK;
+        this->_mh_timer[i][TIMER_ON_HOOK] = HANGUP_WAIT_TIME/TICK_TIME; 
+        this->_mh_state_return[i] = MHS_REQUEST_OR_WAIT;
+        this->_mh_state[i] = MHS_TIME_ON_HOOK_SUB;
       }
       else {
-        if(test_mode == TM_STANDALONE) {
-          // Standalone test mode
-
+        if(this->_test_mode == TM_STANDALONE) {
         }
         else {
           // Wait for OR to be connected
         }
-
-      
       }
       break;
 
     case MHS_OR_CONNECTED:
       // Test for on-hook
       if(this->_on_hook_transition(i)) {
-        this->_mh_state[i] = MHS_ON_HOOK;
+        this->_mh_timer[i][TIMER_ON_HOOK] = HANGUP_WAIT_TIME/TICK_TIME; 
+        this->_mh_state_return[i] = MHS_OR_CONNECTED;
+        this->_mh_state[i] = MHS_TIME_ON_HOOK_SUB;
       }
       else {
       // Wait for connection to be set up
@@ -281,11 +281,11 @@ void SLIC::_main_handler() {
     case MHS_IN_CALL:
       // Test for on-hook
       if(this->_on_hook_transition(i)) {
-        this->_mh_state[i] = MHS_ON_HOOK;
+        this->_mh_timer[i][TIMER_ON_HOOK] = HANGUP_WAIT_TIME/TICK_TIME; 
+        this->_mh_state_return[i] = MHS_IN_CALL;
+        this->_mh_state[i] = MHS_TIME_ON_HOOK_SUB;
       }
-
-
-
+      break;
 
 
     case MHS_ON_HOOK:
@@ -293,9 +293,29 @@ void SLIC::_main_handler() {
       LOG_INFO(TAG, "Line %d on hook", i + 1);
       // Notify main processor to abort the call
       this->_request_service(i, EV_HUNGUP);
+      // Set the default return state
+      this->_mh_state_return[i] = MHS_IDLE;
       // Go back to IDLE state
       this->_mh_state[i] = MHS_IDLE;
        break;
+
+
+    case MHS_TIME_ON_HOOK_SUB: // Time the on hook time before registering a on hook condition
+      if(!this->_mh_timer[i][TIMER_ON_HOOK]) {
+        LOG_DEBUG(TAG, "Line %d has hung up", i + 1);
+        this->_mh_state[i] = MHS_ON_HOOK;
+      }
+      else {
+        // If user goes back off hook, then return to the original state set.
+        
+        if(this->_get_off_hook_state(i)) {
+          LOG_DEBUG(TAG, "Line %d went back off hook before hook timer expired", i + 1);
+          this->_mh_state[i] = this->_mh_state_return[i];
+        }
+        this->_mh_timer[i][TIMER_ON_HOOK]--;
+      }
+      break;
+
     }
   }
 }
@@ -344,9 +364,9 @@ void SLIC::setup() {
     pinMode(LED_OFH2N, OUTPUT);
     digitalWrite(LED_OFH2N, HIGH); // Line 2 LED off
 
-    this->test_mode = TM_STANDALONE;
+    this->_test_mode = TM_STANDALONE;
  
-    if(this->test_mode == TM_STANDALONE) {
+    if(this->_test_mode == TM_STANDALONE) {
       digitalWrite(LEDN_TEST, 0);
       digitalWrite(PDN1, LOW); // Power on
       digitalWrite(PDN2, LOW); // 

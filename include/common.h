@@ -13,6 +13,12 @@ extern LOGGING::Logging Log;
 
 //*************** USER MODIFYABLE AREA BEGIN **************************
 
+/*
+* Tunable parameters
+*/
+
+
+#define HANGUP_WAIT_TIME 1500 // Used to distinguish a hangup from hookflash and dial pulses. Time in milliseconds
 
 /*
 * GPIO pin definitions
@@ -56,26 +62,26 @@ extern LOGGING::Logging Log;
 //*************** USER MODIFYABLE AREA END **************************
 
 
-#define LOG_ERROR(tag, format, args...) Log.log(tag, LOGGING::LOGGING_ERROR, millis(), format, args);
+#define LOG_ERROR(tag, format, ...) Log.log(tag, LOGGING::LOGGING_ERROR, millis(), format __VA_OPT__(,) __VA_ARGS__)
 #if LOG_LEVEL_WARN <= LOG_LEVEL
-#define LOG_WARN(tag, format, args...) Log.log(tag, LOGGING::LOGGING_WARN, millis(), format, args);
+#define LOG_WARN(tag, format, ...) Log.log(tag, LOGGING::LOGGING_WARN, millis(), format __VA_OPT__(,) __VA_ARGS__)
 #else
-#define LOG_WARN(tag, format, args...)
+#define LOG_WARN(tag, format, ...)
 #endif
 #if LOG_LEVEL_NOTICE <= LOG_LEVEL
-#define LOG_NOTICE(tag, format, args...) Log.log(tag, LOGGING::LOGGING_NOTICE, millis(), format, args);
+#define LOG_NOTICE(tag, format, ...) Log.log(tag, LOGGING::LOGGING_NOTICE, millis(), format __VA_OPT__(,) __VA_ARGS__)
 #else
-#define LOG_NOTICE(tag, format, args...)
+#define LOG_NOTICE(tag, format, ...)
 #endif
 #if LOG_LEVEL_INFO <= LOG_LEVEL
-#define LOG_INFO(tag, format, args...) Log.log(tag, LOGGING::LOGGING_INFO, millis(), format, args);
+#define LOG_INFO(tag, format, ...) Log.log(tag, LOGGING::LOGGING_INFO, millis(), format __VA_OPT__(,) __VA_ARGS__)
 #else
-#define LOG_INFO(tag, format, args...)
+#define LOG_INFO(tag, format, ...)
 #endif
 #if LOG_LEVEL_DEBUG <= LOG_LEVEL
-#define LOG_DEBUG(tag, format, args...) Log.log(tag, LOGGING::LOGGING_DEBUG, millis(), format, args);
+#define LOG_DEBUG(tag, format, ...) Log.log(tag, LOGGING::LOGGING_DEBUG, millis(), format __VA_OPT__(,) __VA_ARGS__)
 #else
-#define LOG_DEBUG(tag, format, args...)
+#define LOG_DEBUG(tag, format, ...)
 #endif
 
 
