@@ -58,6 +58,8 @@ void Logging::loop() {
 
     if(this->_ring_buffer.overflow_error) {
         this->_xmit_logitem(TAG, LOGGING_ERROR, millis(), "Log Buffer Overflow");
+        this->_ring_buffer.overflow_error = false;
+
     }
     else { 
         while(!this->_buffer_empty()) {

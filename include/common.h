@@ -51,7 +51,7 @@ extern LOGGING::Logging Log;
 * Default logging level
 */
 
-#define LOG_LEVEL LOG_LEVEL_INFO 
+#define LOG_LEVEL LOG_LEVEL_DEBUG
 
 //*************** USER MODIFYABLE AREA END **************************
 

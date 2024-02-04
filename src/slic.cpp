@@ -1,5 +1,4 @@
 #include "common.h"
-#include "ringbuf.h"
 #include "slic.h"
 
 #define TAG "slic"
@@ -89,6 +88,23 @@ bool SLIC::_on_hook_transition(uint8_t line)
   }
   return false;
 
+}
+
+/*
+* Request service from main processor
+*/
+
+bool SLIC::_request_service(uint8_t line, uint8_t event){
+  bool res = true;
+  LOG_DEBUG(TAG, "Sending event: %d for line %d to main CPU", event, line)
+  if(!test_mode) {
+
+
+
+  // TODO add ring buffer
+  // TODO Add assert ATTEN
+  }
+  return res;
 }
 
 /*
@@ -214,8 +230,72 @@ void SLIC::_main_handler() {
       //LOG_INFO(TAG, "Line %d", i + 1);
       if(this->_off_hook_transition(i)) {
         LOG_INFO(TAG, "Line %d off hook", i + 1);
+        this->_mh_state[i] = MHS_REQUEST_OR;
       }
       break;
+
+    case MHS_REQUEST_OR:
+      // Test for on-hook
+      if(this->_on_hook_transition(i)) {
+        this->_mh_state[i] = MHS_ON_HOOK;
+      }
+      else {
+        this->_request_service(i, EV_REQUEST_OR);
+        // Wait for the OR to get connected
+        this->_mh_state[i] = MHS_REQUEST_OR_WAIT;
+      }
+      break;
+
+    case MHS_REQUEST_OR_WAIT:
+     // Test for on-hook
+      if(this->_on_hook_transition(i)) {
+        this->_mh_state[i] = MHS_ON_HOOK;
+      }
+      else {
+        if(test_mode == TM_STANDALONE) {
+          // Standalone test mode
+
+        }
+        else {
+          // Wait for OR to be connected
+        }
+
+      
+      }
+      break;
+
+    case MHS_OR_CONNECTED:
+      // Test for on-hook
+      if(this->_on_hook_transition(i)) {
+        this->_mh_state[i] = MHS_ON_HOOK;
+      }
+      else {
+      // Wait for connection to be set up
+      }
+      break;
+
+    case MHS_RINGING:
+      break;
+
+
+    case MHS_IN_CALL:
+      // Test for on-hook
+      if(this->_on_hook_transition(i)) {
+        this->_mh_state[i] = MHS_ON_HOOK;
+      }
+
+
+
+
+
+    case MHS_ON_HOOK:
+      // Print log entry
+      LOG_INFO(TAG, "Line %d on hook", i + 1);
+      // Notify main processor to abort the call
+      this->_request_service(i, EV_HUNGUP);
+      // Go back to IDLE state
+      this->_mh_state[i] = MHS_IDLE;
+       break;
     }
   }
 }
@@ -263,12 +343,20 @@ void SLIC::setup() {
     digitalWrite(LED_OFH1N, HIGH); // Line 1 LED off
     pinMode(LED_OFH2N, OUTPUT);
     digitalWrite(LED_OFH2N, HIGH); // Line 2 LED off
+
+    this->test_mode = TM_STANDALONE;
  
-    // Test code - remove
-    digitalWrite(PDN1, LOW); // Power on
-    digitalWrite(PDN2, LOW); // 
-    digitalWrite(MUTE1, LOW); // Unmuted
-    digitalWrite(MUTE2, LOW);
+    if(this->test_mode == TM_STANDALONE) {
+      digitalWrite(LEDN_TEST, 0);
+      digitalWrite(PDN1, LOW); // Power on
+      digitalWrite(PDN2, LOW); // 
+      digitalWrite(MUTE1, LOW); // Unmuted
+      digitalWrite(MUTE2, LOW);
+    }
+
+
+
+    
    
 }
 

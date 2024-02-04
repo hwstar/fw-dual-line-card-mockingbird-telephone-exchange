@@ -4,6 +4,7 @@
 
 #define TAG "main"
 
+uint8_t I2c_address = 0x30;
 HardwareTimer TickTimer(TIM4);
 SLIC::SLIC Slic;
 LOGGING::Logging Log;
@@ -73,15 +74,14 @@ void setup() {
   Slic.setup();
 
   // Determine I2c address
-  uint8_t i2c_address = 0x30;
-  i2c_address |= !digitalRead(SW1N);
-  i2c_address |= ((!digitalRead(SW2N)) << 1);
-  i2c_address |= ((!digitalRead(SW3N)) << 2);
+  I2c_address |= !digitalRead(SW1N);
+  I2c_address |= ((!digitalRead(SW2N)) << 1);
+  I2c_address |= ((!digitalRead(SW3N)) << 2);
 
   // Initialize I2C
   Wire.setSDA(SDA);
   Wire.setSCL(SCL);
-  Wire.begin(i2c_address);
+  Wire.begin(I2c_address);
 
   Wire.onRequest(i2c_request);
   Wire.onReceive(i2c_receive);
