@@ -22,9 +22,9 @@ typedef struct logItem {
 } logItem;
 
 typedef struct ringBuffer {
-    uint8_t head;
-    uint8_t tail;
-    bool overflow_error;
+    volatile uint8_t head;
+    volatile uint8_t tail;
+    volatile bool overflow_error;
     logItem messages[MAX_LOG_BUFFER_DEPTH];
 
 } ringBuffer;

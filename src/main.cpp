@@ -83,6 +83,8 @@ void setup() {
   Wire.setSCL(SCL);
   Wire.begin(I2c_address);
 
+  
+
   Wire.onRequest(i2c_request);
   Wire.onReceive(i2c_receive);
   
