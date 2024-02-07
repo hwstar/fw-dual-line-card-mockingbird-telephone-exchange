@@ -90,6 +90,17 @@ bool SLIC::_on_hook_transition(uint8_t line)
 
 }
 
+/*
+* Power up or power down a SLIC
+*/
+
+void SLIC::_set_power_ctrl(uint8_t line, bool power_ctrl) {
+  if(line < LINE_COUNT) {
+    digitalWrite(pin_map_pd[line], !power_ctrl);
+  }
+
+}
+
 
 /*
 * I2C Master is requesting something to be sent to it
@@ -214,7 +225,8 @@ void SLIC::_ringing_handler() {
     
     switch(this->_ring_state[i]) {
       case RINGING_START_R1: // 2 Sec on, 4 Sec off Cadence
-        digitalWrite(pin_map_rm[i], 1); // Set high voltage ring mode
+        digitalWrite(pin_map_mute[i], HIGH);
+        digitalWrite(pin_map_rm[i], HIGH); // Set high voltage ring mode
         this->_set_line_state_led( i, LED_RING);
         this->_ring_timer[i] = 2000/TICK_TIME; // 2 seconds on
         this->_ring_state[i] = RINGING_ACTIVE_R1;
@@ -224,8 +236,8 @@ void SLIC::_ringing_handler() {
         // Test for ring trip
         if(this->_hook_state_current & (1 << i)) {
           this->_set_line_state_led( i, LED_OFFHOOK);
-          digitalWrite(pin_map_rm[i], 0); // High voltage ring mode off
-          digitalWrite(pin_map_batfr[i], 0); // Normal battery polarity
+          digitalWrite(pin_map_rm[i], LOW); // High voltage ring mode off
+          digitalWrite(pin_map_batfr[i], LOW); // Normal battery polarity
           this->_ring_state[i] = RINGING_PICKUP;
           break;
         }
@@ -246,15 +258,16 @@ void SLIC::_ringing_handler() {
         // Test for ring trip
         if(this->_hook_state_current & (1 << i)) {
           this->_set_line_state_led( i, LED_OFFHOOK);
-          digitalWrite(pin_map_rm[i], 0); // High voltage ring mode off
-          digitalWrite(pin_map_batfr[i], 0); // Normal battery polarity
+          digitalWrite(pin_map_rm[i], LOW); // High voltage ring mode off
+          digitalWrite(pin_map_batfr[i], LOW); // Normal battery polarity
+          digitalWrite(pin_map_mute[i], LOW);
           this->_ring_state[i] = RINGING_PICKUP;
           break;
         }
 
         // Test to see if ring timer expired
         if(!this->_ring_timer[i]) {
-          digitalWrite(pin_map_batfr[i], 0);
+          digitalWrite(pin_map_batfr[i], LOW);
           this->_set_line_state_led( i, LED_ONHOOK);
           this->_ring_timer[i] = 4000/TICK_TIME; // 4 seconds off
           this->_ring_state[i] = RINGING_PAUSE_R1;
@@ -269,8 +282,9 @@ void SLIC::_ringing_handler() {
         break; // Wait here so main handler can observe this state
 
       case RINGING_STOP: // Asked to stop
-          digitalWrite(pin_map_rm[i], 0); // High voltage ring mode off
-          digitalWrite(pin_map_batfr[i], 0); // Normal battery polarity
+          digitalWrite(pin_map_rm[i], LOW); // High voltage ring mode off
+          digitalWrite(pin_map_batfr[i], LOW); // Normal battery polarity
+          digitalWrite(pin_map_mute[i], LOW);
           this->_set_line_state_led( i, LED_ONHOOK);
           this->_ring_state[i] = RINGING_OFF;
           break;
@@ -456,14 +470,14 @@ void SLIC::setup() {
     pinMode(PDN1, OUTPUT);
     digitalWrite(PDN1, HIGH); // Powered off
     pinMode(MUTE1, OUTPUT);
-    digitalWrite(MUTE1, HIGH); // Muted
+    digitalWrite(MUTE1, LOW); // Not Muted
     pinMode(RM2, OUTPUT);
     digitalWrite(RM2, LOW); // Not ringing
     pinMode(SH2, INPUT);
     pinMode(PDN2, OUTPUT);
     digitalWrite(PDN2, HIGH); // Powered off
     pinMode(MUTE2, OUTPUT);
-    digitalWrite(MUTE2, HIGH); // Muted
+    digitalWrite(MUTE2, LOW); // Not Muted
     pinMode(BAT_FR1, OUTPUT);
     digitalWrite(BAT_FR1, LOW); // Normal line polarity
     pinMode(BAT_FR2, OUTPUT);
@@ -475,21 +489,8 @@ void SLIC::setup() {
     pinMode(ATTEN, OUTPUT); 
     digitalWrite(ATTEN, LOW); // Atten OFF
 
+    this->_test_mode = TM_NONE;
 
-    this->_test_mode = TM_STANDALONE;
- 
-    if(this->_test_mode == TM_STANDALONE) {
-      digitalWrite(LEDN_TEST, 0);
-      digitalWrite(PDN1, LOW); // Power on
-      digitalWrite(PDN2, LOW); // 
-      digitalWrite(MUTE1, LOW); // Unmuted
-      digitalWrite(MUTE2, LOW);
-    }
-
-
-
-    
-   
 }
 
 
@@ -589,6 +590,13 @@ void SLIC::loop() {
           interrupts();
         }
         break;
+
+      case REG_POWER_CTRL: // Power up or power down a SLIC
+        if(this->_i2c_read_data_length == 2) {
+          uint8_t line = this->_i2c_read_data[0];
+          uint8_t power_ctrl = this->_i2c_read_data[1];
+          this->_set_power_ctrl(line, (power_ctrl > 0));
+        }
     }
     this->_i2c_read_data_ready = false; // Request processed
   }

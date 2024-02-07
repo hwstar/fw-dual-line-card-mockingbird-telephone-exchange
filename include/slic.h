@@ -22,7 +22,7 @@ enum {EV_NONE=0, EV_READY=1, EV_REQUEST_OR=2, EV_DIALED_DIGIT=2, EV_HOOKFLASH=3,
 // Test modes
 enum {TM_NONE=0, TM_STANDALONE=1};
 // I2C registers
-enum {REG_GET_EVENT=0, REG_GET_BUSY_STATUS=1, REG_SET_OR_ATTACHED=2, REG_SET_IN_CALL=3, REG_REQUEST_RINGING=4, REG_END_CALL=5};
+enum {REG_GET_EVENT=0, REG_GET_BUSY_STATUS=1, REG_SET_OR_ATTACHED=2, REG_SET_IN_CALL=3, REG_REQUEST_RINGING=4, REG_END_CALL=5, REG_POWER_CTRL=254};
 
 
 typedef struct eventBuffer {
@@ -54,6 +54,7 @@ protected:
     bool _get_off_hook_state(uint8_t line);
     bool _off_hook_transition(uint8_t line);
     bool _on_hook_transition(uint8_t line);
+    void _set_power_ctrl(uint8_t line, bool power_ctrl);
     bool _request_service(uint8_t line, uint8_t event);
 
 
