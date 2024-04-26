@@ -595,7 +595,20 @@ void SLIC::loop() {
         if(this->_i2c_read_data_length == 2) {
           uint8_t line = this->_i2c_read_data[0];
           uint8_t power_ctrl = this->_i2c_read_data[1];
-          this->_set_power_ctrl(line, (power_ctrl > 0));
+          noInterrupts();
+          if(power_ctrl == 0) {
+            /* Clear Event buffer, reset all state machines, set I/O's to default */
+            this->setup();
+            this->_event_buffer.head = this->_event_buffer.tail = 0;
+            this->_line_state_leds[0] =  this->_line_state_leds[1] = LED_ONHOOK;
+            this->_mh_state[0] = this->_mh_state[1] = MHS_IDLE;
+            this->_ring_state[0] = this->_ring_state[1] = RINGING_OFF;
+  
+          }
+          else {
+            this->_set_power_ctrl(line, true);
+          }
+          interrupts();
         }
     }
     this->_i2c_read_data_ready = false; // Request processed
